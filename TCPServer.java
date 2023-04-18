@@ -4,22 +4,26 @@ import java.util.*;
 
 public class TCPServer implements Runnable {
 
-    private static Socket socket;
+    private Socket socket;
     private ArrayList<String> allUsers = new ArrayList<String>();
-    private static ArrayList<Socket> clients = new ArrayList<>();
     private ArrayList<String> signedInUsers = new ArrayList<String>();
+    private static ArrayList<Socket> clients = new ArrayList<>();
 
     TCPServer(Socket socket) {
         this.socket = socket;
+    }
+
+    private Socket getSocket() {
+        return this.socket;
     }
 
     public static void main(String[] args) throws IOException {
         ServerSocket welcomeSocket = new ServerSocket(6789);
 
         while (true) {
-            socket = welcomeSocket.accept();
-            clients.add(socket);
+            Socket socket = welcomeSocket.accept();
             TCPServer server = new TCPServer(socket);
+            clients.add(server.getSocket());
             Thread tempThread = new Thread(server);
             tempThread.start();
         }
@@ -28,15 +32,10 @@ public class TCPServer implements Runnable {
     @Override
     public void run() {
         try {
-            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 
             while (true) {
                 String clientMessage = inFromClient.readLine();
-
-                if (clientMessage == null) {
-                    break;
-                }
-
                 System.out.println(clientMessage);
 
                 // check if user has sent sign-in message
@@ -56,26 +55,22 @@ public class TCPServer implements Runnable {
                     // remove the socket from the clients
                     clients.remove(socket);
                 }
-
-                sendMessage(clientMessage);
+                // send regular message to all clients
+                sendMessage(socket, clientMessage);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 
-    public void sendMessage(String message) {
+    // synchronized to prevent more than one thread from writing at a time
+    public synchronized void sendMessage(Socket sender, String message) {
         // output stream to send messages to all clients
-        System.out.println("sockets: " + clients.size());
-
         for (int i = 0; i < clients.size(); i++) {
             Socket socket = clients.get(i);
             try {
                 DataOutputStream outToClient = new DataOutputStream(socket.getOutputStream());
-                // synchronized to prevent more than one thread from writing at a time
-                synchronized (this) {
-                    outToClient.writeBytes(message + "\n");
-                }
+                outToClient.writeBytes(message + "\n");
                 outToClient.flush();
             } catch (Exception e) {
                 e.printStackTrace();
