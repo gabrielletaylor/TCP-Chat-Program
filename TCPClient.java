@@ -53,7 +53,7 @@ public class TCPClient {
 
             // username will be sent to the server
             DataOutputStream output = new DataOutputStream(socket.getOutputStream());
-            output.writeBytes(username + " has joined the chat.\r\n");
+            output.writeBytes(username + " has joined the chat.\n");
             output.flush();
             // OutputStream output = socket.getOutputStream();
             // PrintWriter writer = new PrintWriter(output, true);
@@ -68,25 +68,26 @@ public class TCPClient {
 
             // loop to send and receive messages
             String message;
-            do {
+            while (true) {
                 System.out.print("Enter message (type '.' to exit: "); //to exit the chat, user enters "."
                 message = scanner.nextLine();
-                output.writeBytes(message + "\r\n");
+
+                if (message.equals(".")) {
+                    output.writeBytes(username + " has left the chat.\n");
+                    output.flush();
+                    break;
+                }
+
+                output.writeBytes(username + " - " + message + "\n");
                 output.flush();
 
-                // send message to server
-                // writer.println(message);
-                // writer.flush();
+                // receive messages from server
+                serverResponse = reader.readLine();
+                System.out.println(serverResponse);
+            }
 
-                // // receive messages from server
-                // serverResponse = reader.readLine();
-                // System.out.println(serverResponse);
-    
-            } while (!message.equals("."));
-
-            // send sign-on message to server
-            // writer.println(username + " has left the chat.");
-            output.writeBytes(username + " has left the chat.\r\n");
+            serverResponse = reader.readLine();
+            System.out.println(serverResponse);
 
             // close response
             socket.close();
